@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Código Brasil — Versão 1</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#eef5f7;color:#17324d}
+header{background:#17324d;color:white;padding:14px 22px;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:24px} header span{font-size:14px;opacity:.85}
+main{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;max-width:1100px;margin:20px auto;padding:0 16px}
+.card{background:white;border-radius:16px;box-shadow:0 5px 18px #0001;padding:18px}
+h2{margin:0 0 12px;font-size:18px}
+#grid{display:grid;grid-template-columns:repeat(6,58px);grid-template-rows:repeat(5,58px);gap:5px;justify-content:center;background:#d9edf2;padding:12px;border-radius:12px}
+.cell{width:58px;height:58px;background:#f7fbfc;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:30px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+button{border:0;border-radius:10px;padding:11px 15px;font-weight:bold;cursor:pointer;background:#e5eef2;color:#17324d}
+button.primary{background:#2d9cdb;color:white}.danger{background:#f2d7d5}
+#blocks,#program{min-height:55px;border:2px dashed #b8cbd2;border-radius:12px;padding:10px;display:flex;gap:8px;flex-wrap:wrap}
+.block{padding:10px 13px;border-radius:9px;color:white;font-weight:bold;cursor:grab;user-select:none;box-shadow:0 2px 4px #0002}
+.advance{background:#2d9cdb}.right{background:#27ae60}.left{background:#9b51e0}
+#program{min-height:125px;align-content:flex-start;background:#f8fbfc;margin-top:10px}
+#program .placeholder{color:#78909c;width:100%;text-align:center;padding:25px 5px}
+.info{margin-top:12px;background:#fff7d6;border-radius:10px;padding:10px;font-size:14px}
+.status{margin-top:12px;font-weight:bold;text-align:center;min-height:22px}
+@media(max-width:800px){main{grid-template-columns:1fr}.cell{width:45px;height:45px}.grid{grid-template-columns:repeat(6,45px)!important;grid-template-rows:repeat(5,45px)!important}#grid{grid-template-columns:repeat(6,45px);grid-template-rows:repeat(5,45px)}}
+</style>
+</head>
+<body>
+<header><h1>🐼 Código Brasil</h1><span>Versão 1 • Aprendendo programação</span></header>
+<main>
+<section class="card">
+<h2>🗺️ Fase 1 — Chegue até a bandeira</h2>
+<div id="grid"></div>
+<div class="controls">
+<button class="primary" onclick="executar()">▶ Executar</button>
+<button onclick="reiniciar()">↺ Reiniciar</button>
+<button class="danger" onclick="limpar()">🗑 Limpar programa</button>
+</div>
+<div id="status" class="status"></div>
+</section>
+
+<section class="card">
+<h2>🧩 Blocos de programação</h2>
+<div id="blocks">
+  <div class="block advance" draggable="true" data-cmd="A">⬆ AVANCE</div>
+  <div class="block right" draggable="true" data-cmd="D">↪ DIREITA</div>
+  <div class="block left" draggable="true" data-cmd="E">↩ ESQUERDA</div>
+</div>
+<h2 style="margin-top:18px">💻 Meu programa</h2>
+<div id="program"><div class="placeholder">Arraste os blocos para cá</div></div>
+<div class="info">💡 Dica: o personagem começa olhando para a direita. Monte uma sequência de comandos para chegar à 🏁.</div>
+</section>
+</main>
+<script>
+const rows=5,cols=6;
+let player={r:2,c:0,dir:1}; // 0 cima, 1 direita, 2 baixo, 3 esquerda
+const goal={r:2,c:5};
+let running=false;
+const grid=document.getElementById('grid'), program=document.getElementById('program'), status=document.getElementById('status');
+
+function render(){
+ grid.innerHTML='';
+ for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+   const x=document.createElement('div');x.className='cell';
+   if(r===player.r&&c===player.c)x.textContent=['🔼','▶️','🔽','◀️'][player.dir];
+   else if(r===goal.r&&c===goal.c)x.textContent='🏁';
+   else x.textContent='🌱';
+   grid.appendChild(x);
+ }
+}
+function addBlock(cmd){
+ const b=document.createElement('div');
+ b.className='block '+(cmd==='A'?'advance':cmd==='D'?'right':'left');
+ b.dataset.cmd=cmd;b.draggable=true;
+ b.textContent=cmd==='A'?'⬆ AVANCE':cmd==='D'?'↪ DIREITA':'↩ ESQUERDA';
+ program.querySelector('.placeholder')?.remove();
+ program.appendChild(b); attach(b);
+}
+function attach(el){el.addEventListener('dragstart',e=>e.dataTransfer.setData('cmd',el.dataset.cmd));}
+document.querySelectorAll('#blocks .block').forEach(attach);
+program.addEventListener('dragover',e=>e.preventDefault());
+program.addEventListener('drop',e=>{e.preventDefault();let cmd=e.dataTransfer.getData('cmd');if(cmd)addBlock(cmd);});
+function comandos(){return [...program.querySelectorAll('.block')].map(x=>x.dataset.cmd)}
+async function executar(){
+ if(running)return;
+ const cmds=comandos();
+ if(!cmds.length){status.textContent='Adicione alguns blocos primeiro!';return}
+ running=true; status.textContent='Executando...';
+ reiniciar(false);
+ for(const cmd of cmds){
+   await new Promise(r=>setTimeout(r,450));
+   if(cmd==='D')player.dir=(player.dir+1)%4;
+   if(cmd==='E')player.dir=(player.dir+3)%4;
+   if(cmd==='A'){
+     const dr=[-1,0,1,0][player.dir],dc=[0,1,0,-1][player.dir];
+     const nr=player.r+dr,nc=player.c+dc;
+     if(nr>=0&&nr<rows&&nc>=0&&nc<cols){player.r=nr;player.c=nc}
+   }
+   render();
+   if(player.r===goal.r&&player.c===goal.c){
+     status.textContent='🎉 Parabéns! Você chegou à bandeira!';
+     running=false;return;
+   }
+ }
+ status.textContent='Quase! Ajuste os comandos e tente novamente.';
+ running=false;
+}
+function reiniciar(show=true){player={r:2,c:0,dir:1};render();if(show)status.textContent='';}
+function limpar(){program.innerHTML='<div class="placeholder">Arraste os blocos para cá</div>';reiniciar()}
+render();
+</script>
+</body>
+</html>
